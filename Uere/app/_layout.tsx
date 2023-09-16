@@ -1,56 +1,59 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { SplashScreen, Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
+import { Slot, useSegments, useRouter } from 'expo-router';
+import React from 'react';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+const CLERK_PUBLISHABLE_KEY='pk_test_aW50ZXJuYWwtc3BvbmdlLTM1LmNsZXJrLmFjY291bnRzLmRldiQ'
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
+const tokenCache = {
+	async getToken(key: string) {
+		try {
+			return SecureStore.getItemAsync(key);
+		} catch (err) {
+			return null;
+		}
+	},
+	async saveToken(key: string, token: string) {
+		try {
+			return SecureStore.setItemAsync(key, token);
+		} catch (err) {
+			return;
+		}
+	}
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+const InitialLayout = () => {
 
+	const { isLoaded, isSignedIn } = useAuth();
+	const segments = useSegments();
+	const router = useRouter();
+
+	//whenever isSignedIn changes, this hook is runned
+	useEffect(() => {
+	if (!isLoaded) return;
+		console.log('isSignedIn', isSignedIn);
+
+		const inTabsGroup = segments[0] == '(auth)';
+
+		if (isSignedIn && !inTabsGroup) {
+			router.replace('/home');
+		} else if (!isSignedIn) {
+			router.replace('/login');
+		}
+
+	}, [isSignedIn]);
+
+
+	return <Slot />;
+}
+
+const RootLayoutNav = () => {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+	<ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+		<InitialLayout />
+	</ClerkProvider>
   );
 }
+
+export default RootLayoutNav;
