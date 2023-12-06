@@ -7,10 +7,7 @@ import LoginScreen from './src/screens/loginScreen';
 import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { FIREBASE_AUTH } from './src/config/firebase';
-
-
-const Stack = createNativeStackNavigator();
-
+import Navigation from './Navigation';
 
 function App() {
 
@@ -24,15 +21,7 @@ function App() {
 	}, []);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-		{isSignedIn ? (	
-        <Stack.Screen name="Home" options={{headerShown:true}} component={HomeScreen} />
-		) : (
-        <Stack.Screen name="Login" options={{headerShown:false}} component={LoginScreen} />
-		)}
-      </Stack.Navigator>
-    </NavigationContainer>
+	<Navigation />
   );
 }
 
